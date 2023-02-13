@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"next-terminal/server/common"
+	"next-terminal/server/common/encrypt"
 	"next-terminal/server/common/maps"
 	"next-terminal/server/common/nt"
 	"path"
@@ -55,7 +57,11 @@ func (api AccountApi) LoginEndpoint(c echo.Context) error {
 		return Fail(c, -1, "该账户已停用")
 	}
 
-	if err := utils.Encoder.Match([]byte(user.Password), []byte(loginAccount.Password)); err != nil {
+	encryptedPassword, _ := base64.StdEncoding.DecodeString(loginAccount.Password)
+
+	password := encrypt.RSADecrypt(encryptedPassword, "private.pem")
+
+	if err := utils.Encoder.Match([]byte(user.Password), password); err != nil {
 		count++
 		cache.LoginFailedKeyManager.Set(loginFailCountKey, count, cache.LoginLockExpiration)
 		// 保存登录日志
